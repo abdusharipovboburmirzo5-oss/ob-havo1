@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Xorazm Ob-havo Portali</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Styles -->
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Poppins", sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to right, #003366, #0066cc);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: rgba(0, 0, 40, 0.5);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+    }
+
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 1.2rem;
+    }
+
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+
+    nav a:hover,
+    nav a.active {
+      background: #007bff;
+    }
+
+    main {
+      flex: 1;
+      display: none;
+      padding: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    main.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(10px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+
+    /* Weather Box */
+    .weather-box {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    .weather-box img {
+      width: 120px;
+      margin-bottom: 1rem;
+    }
+
+    .weather-box h2 {
+      font-size: 3rem;
+      margin: 0.5rem 0;
+    }
+
+    .weather-box h3 {
+      font-weight: 400;
+      color: #cce0ff;
+    }
+
+    .details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .details div {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 0.8rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    /* Map Section */
+    #mapContainer {
+      height: 450px;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      margin-top: 1.5rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+      font-size: 0.8rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      header { flex-direction: column; text-align: center; }
+      nav ul { flex-direction: column; gap: 0.6rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🌦 Xorazm Ob-havo Portali</h1>
+    <nav>
+      <ul>
+        <li><a href="#" class="active" data-page="home">Asosiy</a></li>
+        <li><a href="#" data-page="map">Xarita</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Asosiy -->
+  <main id="home" class="active">
+    <h2 style="text-align:center;">Bugungi ob-havo: <span style="color:#ffd700;">Xorazm</span></h2>
+    <div id="weatherBox" class="weather-box">
+      <img id="icon" src="" alt="">
+      <h2 id="temp">24°C</h2>
+      <h3 id="desc">---</h3>
+      <div class="details">
+        <div>🌡 Harorat sezilishi: <span id="feels">16°C</span></div>
+        <div>💧 Namlik: <span id="humidity">2%</span></div>
+        <div>🌬 Shamol tezligi: <span id="wind">-- m/s</span></div>
+        <div>📈 Bosim: <span id="pressure">1 hPa</span></div>
+        <div>🌄 Quyosh chiqishi: <span id="sunrise">16:44</span></div>
+        <div>🌇 Quyosh botishi: <span id="sunset">00:00</span></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Xarita -->
+  <main id="map">
+    <h2 style="text-align:center;">🌍 Xorazm joylashuvi va ob-havo xaritasi</h2>
+    <div id="mapContainer"></div>
+    <div id="mapWeather" class="weather-box" style="margin-top:1.5rem;"></div>
+  </main>
+
+ 
+
+  <!-- JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const apiKey = "YOUR_API_KEY_HERE"; // 🔑 O'z API kalitingizni shu yerga yozing
+    const lat = 41.3775; // Xorazm koordinatalari
+    const lon = 60.3567;
+
+    const navLinks = document.querySelectorAll("nav a");
+    const pages = document.querySelectorAll("main");
+
+    // 🔹 Navigatsiya
+    navLinks.forEach(link => {
+      link.addEventListener("click", e => {
+        e.preventDefault();
+        navLinks.forEach(a => a.classList.remove("active"));
+        link.classList.add("active");
+        pages.forEach(p => p.classList.remove("active"));
+        document.getElementById(link.dataset.page).classList.add("active");
+      });
+    });
+
+    // 🔹 Asosiy ob-havo
+    async function loadWeather() {
+      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=uz`);
+      const data = await res.json();
+
+      document.getElementById("icon").src = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+      document.getElementById("temp").textContent = Math.round(data.main.temp) + "°C";
+      document.getElementById("desc").textContent = data.weather[0].description;
+      document.getElementById("feels").textContent = Math.round(data.main.feels_like) + "°C";
+      document.getElementById("humidity").textContent = data.main.humidity + "%";
+      document.getElementById("wind").textContent = data.wind.speed + " m/s";
+      document.getElementById("pressure").textContent = data.main.pressure + " hPa";
+      document.getElementById("sunrise").textContent = new Date(data.sys.sunrise * 1000).toLocaleTimeString("uz-UZ");
+      document.getElementById("sunset").textContent = new Date(data.sys.sunset * 1000).toLocaleTimeString("uz-UZ");
+    }
+
+    // 🔹 Xarita
+    const map = L.map('mapContainer').setView([lat, lon], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const marker = L.marker([lat, lon]).addTo(map).bindPopup("Xorazm, O‘zbekiston").openPopup();
+
+    async function loadMapWeather() {
+      const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=uz`);
+      const data = await res.json();
+      document.getElementById("mapWeather").innerHTML = `
+        <h3>${data.name}</h3>
+        <img src="https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png">
+        <h2>${Math.round(data.main.temp)}°C</h2>
+        <p>${data.weather[0].description}</p>
+        <div class="details">
+          <div>💧 Namlik: ${data.main.humidity}%</div>
+          <div>🌬 Shamol: ${data.wind.speed} m/s</div>
+          <div>📈 Bosim: ${data.main.pressure} hPa</div>
+        </div>
+      `;
+    }
+
+    loadWeather();
+    loadMapWeather();
+  </script>
+</body>
+</html>
